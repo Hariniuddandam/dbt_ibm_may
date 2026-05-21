@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: int_customers
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+  - name: int_orders
+    columns:
+      - name: status_code
+        description: '{{ doc("orders_status")}}'
+  - name: int_statistics
+    columns: 
+    - name: inventory_value_usd
+      description: "{{ doc('silvercol') }}"
+    - name: inventory_value_eur
+      description: "Value in euros"
+    - name: unit_margin
+      description: "Profit per unit"
+    - name: margin_per
+      description: "Margin percentage"
+    - name: inventory_level
+      description: "Current inventory level"
+    - name: supplier_financial_health
+      description: "Supplier financial status"
+    - name: data_status
+      description: "Data quality/status flag"
+    - name: margin_status_normal
+      description: "Indicates normal margin status"
+
+seeds:
+  - name: supplier_names
+    config: 
+      alias: supp_names
+      
+
+
+ 

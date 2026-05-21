@@ -1,0 +1,17 @@
+snapshots:
+  - name: scd_orders
+    relation: ref('int_orders')
+    config:
+      database: Analytics
+      schema: DW
+      unique_key: order_id
+      strategy: timestamp
+      updated_at: order_date::timestamp_tz
+      dbt_valid_to_current: "'9999-12-31'::timestamp_ntz"
+      hard_deletes: new_record
+      snapshot_meta_column_names:
+        dbt_valid_from: start_date
+        dbt_valid_to: expiry_date
+        dbt_scd_id: order_key
+        dbt_updated_at: updated_at
+        dbt_is_deleted: is_deleted
