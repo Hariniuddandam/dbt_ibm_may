@@ -1,31 +1,57 @@
-select 
-STS.SUPPLIER_ID,
-STS.SUPPLIER_NAME,
-PTS.PART_ID,
-PTS.SUPPLIER_ID as PART_SUPPLIER_ID, -- Added alias here to prevent duplication
-PTS.available_quantity*PTS.supplycost as Inventory_Value ,
-pt.retail_price-pts.supplycost as unit_margin , 
-((pt.retail_price-pts.supplycost)/pt.retail_price*100)::number(4,2) as margin_per,
-case 
-    when PTS.AVAILABLE_QUANTITY>=8000 THEN 'HIGH'
-    WHEN PTS.AVAILABLE_QUANTITY>=3000 THEN 'MEDIUM'
-    ELSE 'LOW'
-END AS Inventory_Level,
-case 
-    when STS.ACCOUNT_BALANCE>5000 THEN 'PREMIUM'
-    WHEN STS.ACCOUNT_BALANCE<=5000 THEN 'STANDARD'
-    WHEN STS.ACCOUNT_BALANCE<=0 THEN 'RISK'
-END  AS Supplier_Financial_Health ,
-CASE 
-    WHEN STS.PHONE_NUMBER IS NULL OR STS.SUPPLIER_ADDRESS IS NULL THEN 'FALSE'
-    ELSE 'TRUE' 
-END AS DATA_STATUS,
-CASE 
-    WHEN PTS.SUPPLYCOST > PT.RETAIL_PRICE THEN 'FALSE'
-    ELSE 'TRUE' 
-END AS Margin_Status_Normal,
-CURRENT_TIMESTAMP() AS UPDATED_AT,
-CURRENT_USER() AS USER
- from {{ref('stg_parts')}} pt join {{ref('stg_part_supps')}} pts 
- on pts.part_id=pt.part_id JOIN {{ref('stg_suppliers')}} STS 
- on sts.supplier_id=pts.supplier_id 
+SELECT
+    s.s_suppkey AS supplier_id,
+    p.p_partkey AS part_id,
+
+    -- Inventory Value
+    ps.ps_availqty * ps.ps_supplycost AS inventory_value_usd,
+
+    
+--  Inventory Value_eur
+    (ps.ps_availqty * ps.ps_supplycost * 0.86)::numeric(18,2) AS inventory_value_eur,
+
+    -- Unit Margin
+    p.p_retailprice - ps.ps_supplycost AS unit_margin,
+
+    -- Margin Percent
+    ROUND(
+        COALESCE(
+            ((p.p_retailprice - ps.ps_supplycost) / NULLIF(p.p_retailprice, 0)) * 100,
+            0
+        ),
+        2
+    ) AS margin_per,
+
+    -- Inventory Level
+    CASE 
+        WHEN ps.ps_availqty >= 8000 THEN 'HIGH'
+        WHEN ps.ps_availqty >= 3000 THEN 'MEDIUM'
+        ELSE 'LOW'
+    END AS inventory_level,
+
+    -- Supplier Financial Health
+    CASE 
+        WHEN s.s_acctbal > 5000 THEN 'PREMIUM'
+        WHEN s.s_acctbal <= 0 THEN 'RISK'
+        ELSE 'STANDARD'
+    END AS supplier_financial_health,
+
+    -- Supplier Data Status
+    CASE 
+        WHEN s.s_phone IS NULL OR s.s_address IS NULL THEN FALSE
+        ELSE TRUE
+    END AS data_status,
+
+    -- Margin Status
+    CASE 
+        WHEN ps.ps_supplycost > p.p_retailprice THEN FALSE
+        ELSE TRUE
+    END AS margin_status_normal,
+
+    CURRENT_TIMESTAMP() AS updated_at,
+    CURRENT_USER() AS user_name
+
+FROM SOURCEDB.MK_MALL.PARTS p
+JOIN SOURCEDB.MK_MALL.PARTSUPPS ps 
+    ON ps.ps_partkey = p.p_partkey
+JOIN SOURCEDB.MK_MALL.SUPPLIERS s  
+    ON ps.ps_suppkey = s.s_suppkey
