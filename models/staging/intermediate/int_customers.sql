@@ -9,3 +9,4 @@ with c as
  select c.* exclude(nation_id,comment),n.nation_name,r.region_name,c.comment
 from c join n on c.nation_id = n.nation_id
 join r on n.region_key = r.region_id
+
